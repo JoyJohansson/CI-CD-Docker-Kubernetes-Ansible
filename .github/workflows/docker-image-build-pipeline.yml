@@ -1,56 +1,29 @@
 name: Build and push  Docker Image
 
-on:
+on: 
   push:
-    tags:
-      - "v*.*.*"
-
-permissions:
-  contents: read
-  packages: write
+    branches: 
+      - main
+  pull_request: 
+    branches:
+      - main
 
 jobs:
-  build:
+  build: 
     runs-on: ubuntu-latest
-    steps:
+    steps: 
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Extract Version from Tag
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-
-      - name: Log in to GitHub Container Registry
+      - name: Log in to Github Container Registry
         uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
-
+        with: 
+          registry: ghrc.io
+          username: ${{ secrets.GITHUB_ACTOR }}
+          password: ${{ secrets.DEVOPS3_TOKEN }}
       - name: Build Docker Image
-        run: docker build --no-cache -t ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:$VERSION .
-
-      - name: Test Docker Image
-        run: |
-          docker run -d --rm -p 8080:80 --name test-nginx ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:$VERSION
-          
-          sleep 5
-          
-          if ! docker ps | grep -q test-nginx; then
-            echo "Test failed: Container did not start!"
-            exit 1
-          fi
-          
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080)
-          if [ "$RESPONSE" -ne 200 ]; then
-            echo "Test failed: Nginx did not serve the expected response!"
-            exit 1
-          fi
-          
-          echo "Test passed: Nginx is running and serving index.html correctly."
-          
-          docker stop test-nginx
+        run: docker build --no-cache -t ghcr.io/${{ github.repository }}/my-nginx:latest .
 
       - name: Push Docker Image to GHCR
-        run: docker push ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:$VERSION
+        run: docker push ghcr.io/${{ github.repository }}/my-nginx:latest
 
