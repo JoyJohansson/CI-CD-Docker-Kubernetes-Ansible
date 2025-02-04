@@ -25,7 +25,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ secrets.GHCR_USERNAME }}
-          password: ${{ secrets.DEVOPS3_TOKEN }}
+          password: ${{ secrets.GHCR_PAT }}
 
       - name: Build Docker Image
         run: docker build --no-cache -t ghcr.io/${{ github.repository }}/my-nginx:$VERSION .
