@@ -1,0 +1,51 @@
+- name: Rolling update for Nginx deployment
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: Ensure jq is installed
+      command: jq --version
+      register: jq_installed
+      ignore_errors: yes
+
+    - name: Install jq if not present
+      become: yes
+      apt:
+        name: jq
+        state: present
+        update_cache: yes
+      when: jq_installed.rc != 0
+
+    - name: Fetch the latest image tag from GHCR
+      shell: >
+        TOKEN=$(curl -s -u "{{ lookup('env', 'GITHUB_USERNAME') }}:{{ lookup('env', 'PERSONAL_ACCESS_TOKEN') }}"
+        "https://ghcr.io/token?scope=repository:joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:pull" | jq -r .token) &&
+        curl -s -H "Authorization: Bearer $TOKEN" \
+        "https://ghcr.io/v2/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx/tags/list" |
+        jq -r '.tags | map(select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))) | sort | last'
+      register: latest_tag
+
+    - name: Set latest image variable
+      set_fact:
+        latest_image: "ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:{{ latest_tag.stdout }}"
+
+    - name: Update deployment with latest image
+      command: kubectl set image deployment/nginx-deployment nginx={{ latest_image }}
+      register: update_result
+      changed_when: "'image updated' in update_result.stdout or 'container image updated' in update_result.stdout"
+
+    - name: Wait for deployment to complete
+      command: kubectl rollout status deployment/nginx-deployment
+      register: rollout_result
+      failed_when: "'successfully rolled out' not in rollout_result.stdout"
+
+    - name: Validate deployment
+      shell: kubectl get pods -l app=nginx -o jsonpath='{.items[*].status.phase}'
+      register: pod_status
+      failed_when: "'Running' not in pod_status.stdout"
+
+    - name: Rollback deployment if validation fails
+      command: kubectl rollout undo deployment/nginx-deployment
+      when: pod_status.failed
+
