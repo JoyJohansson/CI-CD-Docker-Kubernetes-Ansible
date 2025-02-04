@@ -20,5 +20,5 @@ spec:
         - containerPort: 80
       
       imagePullSecrets:
-        - name: ghcr-secret  # Moved outside 'containers'
+        - name: ghcr-secret
 
