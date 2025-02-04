@@ -20,6 +20,9 @@ jobs:
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
+      - name: Convert Repository Name to Lowercase
+        run: echo "REPO_NAME=$(echo '${{ github.repository }}/my-nginx' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
@@ -28,8 +31,8 @@ jobs:
           password: ${{ secrets.GHCR_PAT }}
 
       - name: Build Docker Image
-        run: docker build --no-cache -t ghcr.io/${{ github.repository }}/my-nginx:$VERSION .
+        run: docker build --no-cache -t ghcr.io/$REPO_NAME/my-nginx:$VERSION .
 
       - name: Push Docker Image to GHCR
-        run: docker push ghcr.io/${{ github.repository }}/my-nginx:$VERSION
+        run: docker push ghcr.io/$REPO_NAME/my-nginx:$VERSION
 
