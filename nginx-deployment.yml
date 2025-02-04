@@ -1,0 +1,27 @@
+<<<<<<< HEAD
+=======
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:v2.0.0   # Update if needed
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+      
+      imagePullSecrets:
+        - name: ghcr-secret
+
+>>>>>>> 7c05e84 (Edit image version tag)
