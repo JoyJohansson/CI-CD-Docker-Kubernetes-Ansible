@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:v1.0.7  # Update if needed
+        image: ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:v1.0.8  # Update if needed
         imagePullPolicy: Always
         ports:
         - containerPort: 80
