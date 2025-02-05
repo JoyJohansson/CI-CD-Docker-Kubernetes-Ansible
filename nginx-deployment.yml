@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
->>>>>>> 2664ca4 (Update index.html with fun interactive fruit display)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -27,7 +22,3 @@ spec:
       imagePullSecrets:
         - name: ghcr-secret
 
-<<<<<<< HEAD
-=======
->>>>>>> 7c05e84 (Edit image version tag)
->>>>>>> 2664ca4 (Update index.html with fun interactive fruit display)
