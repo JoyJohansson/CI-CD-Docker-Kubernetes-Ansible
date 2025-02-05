@@ -3,10 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CI/CD Test</title>
+    <title>CI/CD Test - Fruity Edition</title>
+    <style>
+        body {
+            background: linear-gradient(to right, #ff9a9e, #fad0c4);
+            color: white;
+            font-family: "Courier New", monospace;
+            text-align: center;
+        }
+        .ascii-art {
+            font-family: monospace;
+            white-space: pre;
+            font-size: 14px;
+            color: yellow;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: white;
+            color: black;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .button:hover {
+            background-color: yellow;
+        }
+    </style>
 </head>
 <body>
-    <h1>Hello from Nginx!</h1>
-    <p>If you see this, the CI/CD pipline is working!</p>
+
+    <h1>🚀 Hello from Nginx! 🍍🍉🍌</h1>
+    <p>CI/CD Pipeline is running successfully!</p>
+
+    <div class="ascii-art">
+        🍎 🍏 🍊 🍋 🍉 🍇 🍓 🫐 🍒 🍑 🍍 🥭
+    </div>
+
+    <button class="button" onclick="changeFruit()">Change Fruit</button>
+
+    <script>
+        function changeFruit() {
+            const fruits = ["🍎 🍏 🍊 🍋 🍉 🍇 🍓 🫐 🍒 🍑 🍍 🥭", 
+                            "🍌 🍉 🍊 🍓 🥝 🍇 🍒 🍏 🍑 🍍 🫐", 
+                            "🥭 🍍 🍇 🍉 🍋 🍓 🍏 🍒 🫐 🍑 🍎"];
+            document.querySelector(".ascii-art").innerText = fruits[Math.floor(Math.random() * fruits.length)];
+        }
+    </script>
+
 </body>
 </html>
+
