@@ -1,4 +1,4 @@
-name: CI/CD for Nginx Build Only
+name: CI/CD for Nginx Build Only
 
 on:
   push:
@@ -25,7 +25,7 @@ jobs:
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
-          file: ./Documents/DevOps3/examination/ci-cd-docker-kubernetes-ansible/Dockerfile
+          file: ./Dockerfile
           push: true
           tags: ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:${{ env.VERSION }}
 
@@ -45,7 +45,7 @@ jobs:
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
-          file: ./path/to/Dockerfile
+          file: ./Dockerfile
           push: true
           tags: ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:${{ env.VERSION }}
 
