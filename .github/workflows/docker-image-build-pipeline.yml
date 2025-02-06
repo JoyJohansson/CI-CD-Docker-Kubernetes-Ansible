@@ -1,7 +1,8 @@
-name: Build and push  Docker Image
+name: CI/CD for Nginx Build Only
 
 on:
   push:
+    branches: [ main ]
     tags:
       - "v*.*.*"
 
@@ -10,47 +11,63 @@ permissions:
   packages: write
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Debug GitHub Secrets
+        run: |
+          echo "GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}"
+          echo "GHCR_PAT is set: ${{ secrets.GHCR_PAT != '' }}"
 
       - name: Extract Version from Tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image Locally (Before Push)
+        run: |
+          docker build -t test-nginx:${{ env.VERSION }} .
+
+      - name: Run Container for Testing
+        run: |
+          docker run -d --name test-nginx -p 8080:80 test-nginx:${{ env.VERSION }}
+          sleep 5  # Allow some time for Nginx to start
+
+      - name: Test Nginx Container
+        run: |
+          STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:8080)
+          if [ "$STATUS_CODE" -ne 200 ]; then
+            echo "Out of fruit sallads: Expected HTTP 200, got $STATUS_CODE"
+            exit 1
+          else
+            echo "Enjoy your fruit sallad: Nginx is running correctly."
+          fi
+
+      - name: Cleanup Test Container
+        run: |
+          docker stop test-nginx
+          docker rm test-nginx
+
+      - name: Login to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: ${{ secrets.GHCR_USERNAME }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Build Docker Image
-        run: docker build --no-cache -t ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:$VERSION .
-
-      - name: Test Docker Image
-        run: |
-          docker run -d --rm -p 8080:80 --name test-nginx ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:$VERSION
-          
-          sleep 5
-          
-          if ! docker ps | grep -q test-nginx; then
-            echo "Test failed: Container did not start!"
-            exit 1
-          fi
-          
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080)
-          if [ "$RESPONSE" -ne 200 ]; then
-            echo "Test failed: Nginx did not serve the expected response!"
-            exit 1
-          fi
-          
-          echo "Test passed: Nginx is running and serving index.html correctly."
-          
-          docker stop test-nginx
-
-      - name: Push Docker Image to GHCR
-        run: docker push ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:$VERSION
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          file: ./Dockerfile
+          push: true
+          tags: ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:${{ env.VERSION }}
 
