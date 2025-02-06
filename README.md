@@ -1,1 +1,138 @@
-hello  # CI-CD-Docker-Kubernetes-Ansible
+# CI/CD with Docker, Kubernetes, and Ansible
+
+
+## Introduction
+This project demonstrates a fully automated **CI/CD pipeline** using **Docker, Kubernetes, and Ansible**. The pipeline builds and deploys an **Nginx web server** with a custom `index.html`, ensuring automated versioning and rolling updates.
+
+The workflow is managed via **GitHub Actions**, pushing built images to **GitHub Container Registry (GHCR)** and deploying them using Kubernetes. **Ansible** is used to handle rolling updates with rollback capabilities.
+
+---
+
+## Prerequisites
+Before starting, ensure you have the following installed:
+- **Git** - To clone and manage the repository.
+- **Docker** - To build and push images.
+- **Minikube** - To run Kubernetes locally.
+- **Kubectl** - To interact with the Kubernetes cluster.
+- **Ansible** - To manage deployments.
+- **A GitHub Personal Access Token (PAT)** with permissions to push to **GHCR**.
+
+Install the necessary tools using:
+```sh
+sudo apt update && sudo apt install -y git docker.io kubectl ansible
+```
+
+For **Minikube**, follow the [official installation guide](https://minikube.sigs.k8s.io/docs/start/).
+
+---
+
+## Collaborator Guide
+This guide ensures a collaborator can:
+- Clone the repository and set up **Minikube**
+- Deploy **Nginx** with a **NodePort service**
+- Modify `index.html`, commit & push with a **semantic version tag**
+- Trigger a **GitHub Actions pipeline** to build and push an image to **GHCR**
+- Manually update the **Ansible playbook** with the new image version
+- Run **Ansible** to update deployment, validate success, or rollback on failure
+- Allow the **examiner** to test the Minikube deployment
+
+---
+
+## Steps to Follow
+
+### **1. Clone the Repository**
+```sh
+git clone https://github.com/JoyJohansson/ci-cd-docker-kubernetes-ansible.git
+cd ci-cd-docker-kubernetes-ansible
+```
+![Project Screenshot](image_folder/clone-repo-ssh.png)
+
+
+### **2. Deploy Nginx in Minikube**
+**Start Minikube:**
+```sh
+minikube start
+```
+![Project Screenshot](image_folder/minikube-start.png)
+
+**Deploy Nginx with a NodePort service:**
+```sh
+kubectl apply -f nginx-deployment.yml
+kubectl apply -f nginx-service.yml
+```
+
+**Verify deployment:**
+```sh
+kubectl get pods
+kubectl get svc
+```
+
+![Project Screenshot](image_folder/kubectl-pods-svc.png)
+
+---
+
+### **3. Modify index.html, Commit, and Push a Versioned Tag**
+
+**Update `index.html` and commit:**
+```sh
+echo "<h3>If you want a dressing, LETTUES know!</h3>" > index.html
+git add index.html
+git commit -m "Update index.html with a new message"
+```
+
+**Tag with semantic versioning (e.g., v3.0.0):**
+```sh
+git tag v3.0.0
+git push origin v3.0.0
+```
+
+**This triggers the GitHub Actions pipeline!**
+
+![Project Screenshot](image_folder/Github-tag.png)
+
+![Project Screenshot](image_folder/workflow.png)
+
+---
+
+## GitHub Actions Pipeline: Build & Push Image to GHCR
+The pipeline automatically:
+- Builds the updated Docker image
+- Tags it with `v3.0.0`
+- Pushes it to **GHCR**
+
+![Project Screenshot](image_folder/pipeline-build.png)
+
+---
+
+### **4. Run Ansible Playbook to Update the Deployment**
+**Execute the playbook:**
+```sh
+ansible-playbook deploy-playbook.yml --ask-become-pass
+```
+- Updates the deployment with the new **GHCR image**
+- Waits for **Kubernetes rollout completion**
+- Validates that **all pods are running**
+- **Rolls back** if deployment fails
+  
+![Project Screenshot](image_folder/ansible-playbook.png)
+
+---
+
+## Validation with Minikube
+Runs:
+```sh
+minikube service nginx-service
+```
+This should open the **updated index.html** in a browser.
+
+![Project Screenshot](image_folder/CI-CD-UI.png)
+
+
+
+This fully automated pipeline ensures seamless deployment, updates, and validation with CI/CD, GitHub Actions, GHCR, Kubernetes, and Ansible.
+
+- Now, the pipeline is fully automated!
+- The collaborator can deploy, update, and validate everything end-to-end!
+- Let me know what further refinements could be made!
+
+## From code to production—one commit at a time!
