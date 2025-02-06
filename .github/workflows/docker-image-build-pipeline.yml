@@ -18,6 +18,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Debug GitHub Secrets
+        run: |
+          echo "GHCR_PAT is set: ${{ secrets.GHCR_PAT != '' }}"
+          echo "GHCR_USERNAME is set: ${{ secrets.GHCR_USERNAME != '' }}"
+
       - name: Extract Version from Tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
