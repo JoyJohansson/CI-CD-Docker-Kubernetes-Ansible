@@ -1,7 +1,8 @@
-name: Build and push  Docker Image
+name: CI/CD for Nginx Deployment
 
 on:
   push:
+    branches: [ main ]
     tags:
       - "v*.*.*"
 
@@ -10,47 +11,79 @@ permissions:
   packages: write
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Extract Version from Tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          file: ./path/to/Dockerfile
+          push: true
+          tags: ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:${{ env.VERSION }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
+          password: ${{ secrets.MY_GITHUB_TOKEN }}
 
-      - name: Build Docker Image
-        run: docker build --no-cache -t ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:$VERSION .
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          file: ./path/to/Dockerfile
+          push: true
+          tags: ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:${{ env.VERSION }}
 
-      - name: Test Docker Image
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12.1'
+
+      - name: Install Ansible and Docker modules
         run: |
-          docker run -d --rm -p 8080:80 --name test-nginx ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:$VERSION
-          
-          sleep 5
-          
-          if ! docker ps | grep -q test-nginx; then
-            echo "Test failed: Container did not start!"
-            exit 1
-          fi
-          
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080)
-          if [ "$RESPONSE" -ne 200 ]; then
-            echo "Test failed: Nginx did not serve the expected response!"
-            exit 1
-          fi
-          
-          echo "Test passed: Nginx is running and serving index.html correctly."
-          
-          docker stop test-nginx
+          pip install ansible
+          ansible-galaxy collection install community.docker
 
-      - name: Push Docker Image to GHCR
-        run: docker push ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:$VERSION
+      - name: Create inventory from secret
+        run: echo "${{ secrets.HOST }}" > inventory
+
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/key.pem
+          chmod 600 ~/.ssh/key.pem
+          ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+          echo "Host *\n IdentityFile ~/.ssh/key.pem" > ~/.ssh/config
+
+      - name: Run Ansible Playbook for Nginx Deployment
+        run: ansible-playbook -vvv -i inventory ./path/to/nginx-playbook.yml --private-key ~/.ssh/key.pem -u ubuntu
+        env:
+          IMAGE: "${{ lookup('env', 'IMAGE') }}"
+          HOST: "${{ secrets.HOST }}"
+          GHCR_USERNAME: "${{ lookup('env', 'USERNAME') }}"
+          GHCR_TOKEN: "${{ lookup('env', 'MY_GITHUB_TOKEN') }}"
+          REPOSITORY_NAME: "${{ lookup('env', 'REPOSITORY_NAME') }}"
 
