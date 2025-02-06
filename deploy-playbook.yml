@@ -42,7 +42,7 @@
 
     - name: Pull the latest version of the Nginx image
       community.docker.docker_image:
-        name: "{{ lookup('env', 'IMAGE') | default('ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible-demo/my-nginx:v2.0.6') }}"
+        name: "{{ lookup('env', 'IMAGE') | default('ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:v2.0.6') }}"
         source: pull
 
     - name: Debug Variables
