@@ -1,4 +1,4 @@
-name: CI/CD for Nginx Build Only
+name: CI/CD for Nginx Build Only
 
 on:
   push:
