@@ -7,7 +7,7 @@
   gather_facts: no
 
   vars:
-    image: "{{ lookup('env', 'IMAGE') }}"
+    image: "{{ lookup('env', 'IMAGE') | default('ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:v4.0.3', true) }}"
     container_name: "nginx"
     ghcr_username: "{{ lookup('env', 'GHCR_USERNAME') }}"
     ghcr_token: "{{ lookup('env', 'GHCR_PAT') }}"
@@ -42,8 +42,9 @@
 
     - name: Pull the latest version of the Nginx image
       community.docker.docker_image:
-        name: "{{ lookup('env', 'IMAGE') | default('ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:v4.0.0') }}"
+        name: "ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:v4.0.3"
         source: pull
+        state: present
 
     - name: Debug Variables
       ansible.builtin.debug:
