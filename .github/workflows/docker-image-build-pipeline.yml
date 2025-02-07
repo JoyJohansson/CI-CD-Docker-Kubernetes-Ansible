@@ -33,6 +33,50 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Run Container for Testing
+        run: |
+          docker run -d --name test-nginx -p 8080:80 test-nginx:${{ env.VERSION }}
+          sleep 5  # Allow some time for Nginx to start
+
+      - name: Test Nginx Container
+        run: |
+          STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:8080)
+          if [ "$STATUS_CODE" -ne 200 ]; then
+            echo "Test failed: Expected HTTP 200, got $STATUS_CODE"
+            exit 1
+          else
+            echo "Test passed: Nginx is running correctly."
+          fi
+
+      - name: Cleanup Test Container
+        run: |
+          docker stop test-nginx
+          docker rm test-nginx
+
+      - name: Build Docker Image Locally (Before Push)
+        run: |
+          docker build -t test-nginx:${{ env.VERSION }} .
+
+      - name: Run Container for Testing
+        run: |
+          docker run -d --name test-nginx -p 8080:80 test-nginx:${{ env.VERSION }}
+          sleep 5  # Allow some time for Nginx to start
+
+      - name: Test Nginx Container
+        run: |
+          STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:8080)
+          if [ "$STATUS_CODE" -ne 200 ]; then
+            echo "Test failed: Expected HTTP 200, got $STATUS_CODE"
+            exit 1
+          else
+            echo "Test passed: Nginx is running correctly."
+          fi
+
+      - name: Cleanup Test Container
+        run: |
+          docker stop test-nginx
+          docker rm test-nginx
+
       - name: Login to GitHub Container Registry (GHCR)
         uses: docker/login-action@v3
         with:

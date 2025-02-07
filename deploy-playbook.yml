@@ -47,9 +47,20 @@
 
     - name: Debug Variables
       ansible.builtin.debug:
-        msg: 
-          - "Repository Name: {{ repository_name }}"
-          - "Image Name: {{ image }}"
+        msg:
+          - "       .-\"\"\"\"\"-."
+          - "      /        \\"
+          - "     |  🍎 🍊 🍋  |  Welcome to the Kubernetes Fruit Salad!"
+          - "     |  🍉 🍇 🍓  |"
+          - "      \\  🍌 🍍  /"
+          - "       '-.....-'"
+          - ""
+          - " 🥄 Mixing containers like a fresh fruit bowl! 🥄"
+          - ""
+          - " 🍎 Repository Name: {{ repository_name }}"
+          - " 🍌 Image Name: {{ image }}"
+          - ""
+          - "🚀 Ready to serve a container full of flavour!"
 
     - name: Start the new Nginx container
       community.docker.docker_container:
