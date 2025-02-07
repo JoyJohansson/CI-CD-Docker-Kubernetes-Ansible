@@ -1,5 +1,5 @@
 - name: Rolling update for Nginx deployment
-  hosts: localhost
+  hosts: localhost  
   connection: local
   become: yes
   become_method: sudo
@@ -7,6 +7,8 @@
   gather_facts: no
 
   vars:
+    image: "{{ lookup('env', 'IMAGE') | default('ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:v4.0.3', true) }}"
+    container_name: "nginx"
     ghcr_username: "{{ lookup('env', 'GHCR_USERNAME') }}"
     ghcr_token: "{{ lookup('env', 'GHCR_PAT') }}"
     repository_name: "ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx"
@@ -93,4 +95,34 @@
         ports:
           - "{{ app_port }}:{{ app_port }}"
         restart_policy: always
+        
+    - name: Login to GitHub Container Registry (GHCR)
+      community.docker.docker_login:
+        username: "{{ ghcr_username }}"
+        password: "{{ ghcr_token }}"
+        registry_url: ghcr.io
 
+    - name: Check if the container exists
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: container_info
+
+    - name: Stop and remove existing Nginx container if running
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: absent
+      when: container_info.exists and container_info.container.State.Running
+
+    - name: Remove old Nginx Docker image
+      ansible.builtin.shell: |
+        if [ -n "{{ repository_name }}" ]; then
+          docker images "{{ repository_name }}" -q | xargs -r docker rmi --force
+        fi
+      ignore_errors: yes
+      changed_when: false  # Prevent unnecessary changes in Ansible reports
+
+    - name: Pull the latest version of the Nginx image
+      community.docker.docker_image:
+        name: "ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:v4.0.3"
+        source: pull
+        state: present
