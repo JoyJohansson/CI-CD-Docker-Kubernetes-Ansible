@@ -1,5 +1,5 @@
 - name: Rolling update for Nginx deployment
-  hosts: localhost  # Running on the local machine
+  hosts: localhost  
   connection: local
   become: yes
   become_method: sudo
@@ -9,8 +9,8 @@
   vars:
     image: "{{ lookup('env', 'IMAGE') }}"
     container_name: "nginx"
-    ghcr_username: "{{ lookup('env', 'USERNAME') }}"
-    ghcr_token: "{{ lookup('env', 'MY_GITHUB_TOKEN') }}"
+    ghcr_username: "{{ lookup('env', 'GHCR_USERNAME') }}"
+    ghcr_token: "{{ lookup('env', 'GHCR_PAT') }}"
     repository_name: "ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx"
     app_port: "80"
 
@@ -42,7 +42,7 @@
 
     - name: Pull the latest version of the Nginx image
       community.docker.docker_image:
-        name: "{{ lookup('env', 'IMAGE') | default('ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:v2.0.6') }}"
+        name: "{{ lookup('env', 'IMAGE') | default('ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:v4.0.0') }}"
         source: pull
 
     - name: Debug Variables
@@ -69,5 +69,4 @@
         state: started
         ports:
           - "{{ app_port }}:{{ app_port }}"
-        restart_policy: always  # Ensures the container restarts if it stops
-
+        restart_policy: always  
