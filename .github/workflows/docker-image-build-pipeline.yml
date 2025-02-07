@@ -33,29 +33,29 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker Image Locally (Before Push)
-        run: |
-          docker build -t test-nginx:${{ env.VERSION }} .
+      - name: Build Docker Image
+        run: docker build --no-cache -t ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:$VERSION .
 
-      - name: Run Container for Testing
+      - name: Test Docker Image
         run: |
-          docker run -d --name test-nginx -p 8080:80 test-nginx:${{ env.VERSION }}
-          sleep 5  # Allow some time for Nginx to start
-
-      - name: Test Nginx Container
-        run: |
-          STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:8080)
-          if [ "$STATUS_CODE" -ne 200 ]; then
-            echo "Out of fruit sallads: Expected HTTP 200, got $STATUS_CODE"
+          docker run -d --rm -p 8080:80 --name test-nginx ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:$VERSION
+          
+          sleep 5
+          
+          if ! docker ps | grep -q test-nginx; then
+            echo "Test failed: Container did not start!"
             exit 1
-          else
-            echo "Enjoy your fruit sallad: Nginx is running correctly."
           fi
-
-      - name: Cleanup Test Container
-        run: |
+          
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080)
+          if [ "$RESPONSE" -ne 200 ]; then
+            echo "Test failed: Nginx did not serve the expected response!"
+            exit 1
+          fi
+          
+          echo "Test passed: Nginx is running and serving index.html correctly."
+          
           docker stop test-nginx
-          docker rm test-nginx
 
       - name: Login to GitHub Container Registry (GHCR)
         uses: docker/login-action@v3
