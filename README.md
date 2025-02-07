@@ -48,7 +48,54 @@ cd ci-cd-docker-kubernetes-ansible
 ![Project Screenshot](image_folder/clone-repo-ssh.png)
 
 
-### **2. Deploy Nginx in Minikube**
+
+## **2. Set Up GHCR Authentication**
+
+Before pushing or pulling images from GitHub Container Registry (GHCR), a collaborator must create and configure authentication secrets for GitHub Actions and Kubernetes.
+### Create a GitHub Personal Access Token (PAT)
+
+    Go to GitHub → Settings → Developer Settings → Personal Access Tokens
+    Click "Generate new token (classic)"
+    Set permissions:
+        write:packages (to push images)
+        read:packages (to pull images)
+        repo (to allow GitHub Actions access)
+    Copy the generated token (you won’t be able to see it again).
+
+### Store PAT as a GitHub Actions Secret
+
+    Go to the GitHub repository
+    Navigate to Settings → Secrets and variables → Actions → New Repository Secret
+    Create a new secret:
+        Name: GHCR_PAT
+        Value: Paste your Personal Access Token (PAT)
+
+### Create a Kubernetes Secret for GHCR
+
+After setting up authentication in GitHub, you need to create a Kubernetes secret to allow your cluster to pull images from GHCR.
+
+```sh
+kubectl create secret docker-registry ghcr-secret \
+  --docker-server=ghcr.io \
+  --docker-username=GITHUB_USERNAME \
+  --docker-password=YOUR_PAT_TOKEN \
+  --docker-email=YOUR_EMAIL
+```
+
+ - Replace GITHUB_USERNAME, YOUR_PAT_TOKEN, and YOUR_EMAIL with your actual details.
+### 2.4 Attach the Secret to Kubernetes Deployment
+
+Edit your nginx-deployment.yml file to use imagePullSecrets:
+
+```sh
+spec:
+  imagePullSecrets:
+    - name: ghcr-secret
+```
+
+Now, Kubernetes can authenticate with GHCR and pull images securely.
+
+### **3. Deploy Nginx in Minikube**
 **Start Minikube:**
 ```sh
 minikube start
@@ -71,7 +118,7 @@ kubectl get svc
 
 ---
 
-### **3. Modify index.html, Commit, and Push a Versioned Tag**
+### **4. Modify index.html, Commit, and Push a Versioned Tag**
 
 **Update `index.html` and commit:**
 ```sh
@@ -100,12 +147,22 @@ The pipeline automatically:
 - Tags it with `v3.0.0`
 - Pushes it to **GHCR**
 
+
 ![Project Screenshot](image_folder/pipeline-build.png)
+
+
+## Update your Deployment - force rollout restart
+Update your Nginx deployment in Kubernetes after pushing a new image, you need to force a rollout restart so that Kubernetes pulls the latest version of the container
+
+```sh
+kubectl rollout restart deployment nginx-deployment
+```
 
 ---
 
-### **4. Run Ansible Playbook to Update the Deployment**
+### **5. Run Ansible Playbook to Update the Deployment**
 **Execute the playbook:**
+
 ```sh
 ansible-playbook deploy-playbook.yml --ask-become-pass
 ```
@@ -114,7 +171,7 @@ ansible-playbook deploy-playbook.yml --ask-become-pass
 - Validates that **all pods are running**
 - **Rolls back** if deployment fails
   
-![Project Screenshot](image_folder/ansible-playbook.png)
+![Project Screenshot](image_folder/ansibleplaybook.png)
 
 ---
 
@@ -124,6 +181,7 @@ Runs:
 minikube service nginx-service
 ```
 This should open the **updated index.html** in a browser.
+
 
 ![Project Screenshot](image_folder/CI-CD-UI.png)
 
@@ -135,4 +193,6 @@ This fully automated pipeline ensures seamless deployment, updates, and validati
 - The collaborator can deploy, update, and validate everything end-to-end!
 - Let me know what further refinements could be made!
 
-## From code to production—one commit at a time!
+
+ 
+ ### **From code to production—one commit at a time!** ###
