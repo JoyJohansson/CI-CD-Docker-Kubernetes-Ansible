@@ -1,5 +1,5 @@
 - name: Rolling update for Nginx deployment
-  hosts: localhost  
+  hosts: localhost
   connection: local
   become: yes
   become_method: sudo
@@ -7,14 +7,31 @@
   gather_facts: no
 
   vars:
-    image: "{{ lookup('env', 'IMAGE') | default('ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:v4.0.3', true) }}"
-    container_name: "nginx"
     ghcr_username: "{{ lookup('env', 'GHCR_USERNAME') }}"
     ghcr_token: "{{ lookup('env', 'GHCR_PAT') }}"
     repository_name: "ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx"
     app_port: "80"
 
   tasks:
+    - name: Ensure jq is installed
+      package:
+        name: jq
+        state: present
+      become: yes  # Required for installing packages
+
+    - name: Fetch the latest image tag from GHCR
+      shell: >
+        TOKEN=$(curl -s -u "{{ ghcr_username }}:{{ ghcr_token }}"
+        "https://ghcr.io/token?scope=repository:joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:pull" | jq -r .token) &&
+        curl -s -H "Authorization: Bearer $TOKEN"
+        "https://ghcr.io/v2/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx/tags/list" |
+        jq -r '.tags | map(select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))) | sort | last'
+      register: latest_tag
+
+    - name: Debug the latest tag
+      debug:
+        msg: "Latest image tag is {{ latest_tag.stdout }}"
+
     - name: Login to GitHub Container Registry (GHCR)
       community.docker.docker_login:
         username: "{{ ghcr_username }}"
@@ -23,12 +40,12 @@
 
     - name: Check if the container exists
       community.docker.docker_container_info:
-        name: "{{ container_name }}"
+        name: "nginx"
       register: container_info
 
     - name: Stop and remove existing Nginx container if running
       community.docker.docker_container:
-        name: "{{ container_name }}"
+        name: "nginx"
         state: absent
       when: container_info.exists and container_info.container.State.Running
 
@@ -42,9 +59,14 @@
 
     - name: Pull the latest version of the Nginx image
       community.docker.docker_image:
-        name: "ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:v4.0.3"
+        name: "{{ repository_name }}:{{ latest_tag.stdout }}"
         source: pull
         state: present
+
+    - name: Update Nginx Deployment with Latest Image
+      command: kubectl set image deployment/nginx-deployment nginx=ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:{{ latest_tag.stdout }}
+      environment:
+        KUBECONFIG: "/home/joy-johansson/.kube/config"
 
     - name: Debug Variables
       ansible.builtin.debug:
@@ -59,15 +81,16 @@
           - " 🥄 Mixing containers like a fresh fruit bowl! 🥄"
           - ""
           - " 🍎 Repository Name: {{ repository_name }}"
-          - " 🍌 Image Name: {{ image }}"
+          - " 🍌 Image Name: {{ latest_tag.stdout }}"
           - ""
           - "🚀 Ready to serve a container full of flavour!"
 
     - name: Start the new Nginx container
       community.docker.docker_container:
-        name: "{{ container_name }}"
-        image: "{{ image }}"
+        name: "nginx"
+        image: "{{ repository_name }}:{{ latest_tag.stdout }}"
         state: started
         ports:
           - "{{ app_port }}:{{ app_port }}"
-        restart_policy: always  
+        restart_policy: always
+
