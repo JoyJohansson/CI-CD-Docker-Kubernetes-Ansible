@@ -27,9 +27,6 @@ jobs:
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
-      - name: Debug Extracted Version
-        run: echo "Extracted VERSION: $VERSION"
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
