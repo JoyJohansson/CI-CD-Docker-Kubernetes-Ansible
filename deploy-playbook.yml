@@ -1,9 +1,6 @@
-- name: Rolling update for Nginx deployment
+- name: Rolling update and rollback for Nginx deployment
   hosts: localhost
   connection: local
-  become: yes
-  become_method: sudo
-  become_user: root
   gather_facts: no
 
   vars:
@@ -11,13 +8,14 @@
     ghcr_token: "{{ lookup('env', 'GHCR_PAT') }}"
     repository_name: "ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx"
     app_port: "80"
+    kubeconfig_path: "/home/joy-johansson/.kube/config"
 
   tasks:
-    - name: Ensure jq is installed
-      package:
-        name: jq
-        state: present
-      become: yes  # Required for installing packages
+    - name: Fetch the current deployed image
+      command: kubectl get deployment nginx-deployment -o=jsonpath='{.spec.template.spec.containers[0].image}'
+      register: previous_image
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
 
     - name: Fetch the latest image tag from GHCR
       shell: >
@@ -32,65 +30,36 @@
       debug:
         msg: "Latest image tag is {{ latest_tag.stdout }}"
 
-    - name: Login to GitHub Container Registry (GHCR)
-      community.docker.docker_login:
-        username: "{{ ghcr_username }}"
-        password: "{{ ghcr_token }}"
-        registry_url: ghcr.io
-
-    - name: Check if the container exists
-      community.docker.docker_container_info:
-        name: "nginx"
-      register: container_info
-
-    - name: Stop and remove existing Nginx container if running
-      community.docker.docker_container:
-        name: "nginx"
-        state: absent
-      when: container_info.exists and container_info.container.State.Running
-
-    - name: Remove old Nginx Docker image
-      ansible.builtin.shell: |
-        if [ -n "{{ repository_name }}" ]; then
-          docker images "{{ repository_name }}" -q | xargs -r docker rmi --force
-        fi
-      ignore_errors: yes
-      changed_when: false  # Prevent unnecessary changes in Ansible reports
-
-    - name: Pull the latest version of the Nginx image
-      community.docker.docker_image:
-        name: "{{ repository_name }}:{{ latest_tag.stdout }}"
-        source: pull
-        state: present
-
     - name: Update Nginx Deployment with Latest Image
-      command: kubectl set image deployment/nginx-deployment nginx=ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:{{ latest_tag.stdout }}
+      command: kubectl set image deployment/nginx-deployment nginx={{ repository_name }}:{{ latest_tag.stdout }}
       environment:
-        KUBECONFIG: "/home/joy-johansson/.kube/config"
+        KUBECONFIG: "{{ kubeconfig_path }}"
 
-    - name: Debug Variables
-      ansible.builtin.debug:
-        msg:
-          - "       .-\"\"\"\"\"-."
-          - "      /        \\"
-          - "     |  🍎 🍊 🍋  |  Welcome to the Kubernetes Fruit Salad!"
-          - "     |  🍉 🍇 🍓  |"
-          - "      \\  🍌 🍍  /"
-          - "       '-.....-'"
-          - ""
-          - " 🥄 Mixing containers like a fresh fruit bowl! 🥄"
-          - ""
-          - " 🍎 Repository Name: {{ repository_name }}"
-          - " 🍌 Image Name: {{ latest_tag.stdout }}"
-          - ""
-          - "🚀 Ready to serve a container full of flavour!"
+    - name: Wait for rollout to complete
+      command: kubectl rollout status deployment/nginx-deployment --timeout=60s
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: rollout_status
+      ignore_errors: yes
 
-    - name: Start the new Nginx container
-      community.docker.docker_container:
-        name: "nginx"
-        image: "{{ repository_name }}:{{ latest_tag.stdout }}"
-        state: started
-        ports:
-          - "{{ app_port }}:{{ app_port }}"
-        restart_policy: always
+    - name: Rollback if deployment failed
+      command: kubectl rollout undo deployment/nginx-deployment
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      when: rollout_status.rc != 0
+
+    - name: Debug Rollback Status
+      debug:
+        msg: "Deployment rolled back due to failure"
+      when: rollout_status.rc != 0
+
+    - name: Verify Running Image Version
+      command: kubectl get deployment nginx-deployment -o=jsonpath='{.spec.template.spec.containers[0].image}'
+      register: new_image
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Debug New Image
+      debug:
+        msg: "Deployment is now running image {{ new_image.stdout }}"
 
