@@ -1,5 +1,6 @@
 # CI/CD with Docker, Kubernetes, and Ansible
 
+![Project Screenshot](image_folder/DevOps_Workflow_Diagram.drawio.png)
 
 ## Introduction
 This project demonstrates a fully automated **CI/CD pipeline** using **Docker, Kubernetes, and Ansible**. The pipeline builds and deploys an **Nginx web server** with a custom `index.html`, ensuring automated versioning and rolling updates.
@@ -49,10 +50,10 @@ cd ci-cd-docker-kubernetes-ansible
 
 
 
-## **2. Set Up GHCR Authentication**
+### **2. Set Up GHCR Authentication**
 
 Before pushing or pulling images from GitHub Container Registry (GHCR), a collaborator must create and configure authentication secrets for GitHub Actions and Kubernetes.
-### Create a GitHub Personal Access Token (PAT)
+**Create a GitHub Personal Access Token (PAT)**
 
     Go to GitHub → Settings → Developer Settings → Personal Access Tokens
     Click "Generate new token (classic)"
@@ -62,7 +63,7 @@ Before pushing or pulling images from GitHub Container Registry (GHCR), a collab
         repo (to allow GitHub Actions access)
     Copy the generated token (you won’t be able to see it again).
 
-### Store PAT as a GitHub Actions Secret
+**Store PAT as a GitHub Actions Secret**
 
     Go to the GitHub repository
     Navigate to Settings → Secrets and variables → Actions → New Repository Secret
@@ -70,7 +71,7 @@ Before pushing or pulling images from GitHub Container Registry (GHCR), a collab
         Name: GHCR_PAT
         Value: Paste your Personal Access Token (PAT)
 
-### Create a Kubernetes Secret for GHCR
+**Create a Kubernetes Secret for GHCR**
 
 After setting up authentication in GitHub, you need to create a Kubernetes secret to allow your cluster to pull images from GHCR.
 
@@ -83,7 +84,7 @@ kubectl create secret docker-registry ghcr-secret \
 ```
 
  - Replace GITHUB_USERNAME, YOUR_PAT_TOKEN, and YOUR_EMAIL with your actual details.
-### 2.4 Attach the Secret to Kubernetes Deployment
+**Attach the Secret to Kubernetes Deployment**
 
 Edit your nginx-deployment.yml file to use imagePullSecrets:
 
@@ -141,7 +142,7 @@ git push origin v3.0.0
 
 ---
 
-## GitHub Actions Pipeline: Build & Push Image to GHCR
+### **5. GitHub Actions Pipeline: Build & Push Image to GHCR**
 The pipeline automatically:
 - Builds the updated Docker image
 - Tags it with `v3.0.0`
@@ -151,7 +152,7 @@ The pipeline automatically:
 ![Project Screenshot](image_folder/pipeline-build.png)
 
 
-## Update your Deployment - force rollout restart
+### **6. Update your Deployment - force rollout restart**
 Update your Nginx deployment in Kubernetes after pushing a new image, you need to force a rollout restart so that Kubernetes pulls the latest version of the container
 
 ```sh
@@ -160,7 +161,7 @@ kubectl rollout restart deployment nginx-deployment
 
 ---
 
-### **5. Run Ansible Playbook to Update the Deployment**
+### **7. Run Ansible Playbook to Update the Deployment**
 **Execute the playbook:**
 
 ```sh
@@ -175,7 +176,7 @@ ansible-playbook deploy-playbook.yml --ask-become-pass
 
 ---
 
-## Validation with Minikube
+### **8. Validation with Minikube**
 Runs:
 ```sh
 minikube service nginx-service
@@ -195,4 +196,4 @@ This fully automated pipeline ensures seamless deployment, updates, and validati
 
 
  
- ### **From code to production—one commit at a time!** ###
+ ## *From code to production—one commit at a time!*
