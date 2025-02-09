@@ -170,7 +170,7 @@ ansible-playbook deploy-playbook.yml
 - Updates the deployment with the new **GHCR image**
 - Waits for **Kubernetes rollout completion**
 - Validates that **all pods are running**
-- **Rolls back** if deployment fails 
+- **Rolls back** if deployment fails *(Just realised that I actually didn't implement this, will have to do it in the next release)*
   
 ![Project Screenshot](image_folder/ansibleplaybook.png)
 
