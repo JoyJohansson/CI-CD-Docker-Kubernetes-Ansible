@@ -136,4 +136,54 @@ Ett funktionellt test lades till i GitHub Actions-pipelinen:
 
 Projektet har gett insikter i CI/CD-pipeline, verktyg och metodik. Lärande och erfarenhet kommer att spela en avgörande roll i att utveckla mer robusta och effektiva lösningar framöver.
 
+## Tillägg:
+
+## Reflektion över Rolling Updates i Kubernetes
+
+Jag trodde att jag hade implementerat en rolling update för Nginx, men efter att ha granskat min setup insåg jag att jag **inte** hade en korrekt konfiguration. I min Ansible-playbook uppdaterade jag Kubernetes-deploymenten med `kubectl set image`, men utan en definierad **RollingUpdate-strategi**, vilket gör att uppdateringen inte sker på ett kontrollerat sätt.
+
+I min Docker-baserade hantering stoppade och raderade jag containern innan jag startade den nya, vilket skapade **nedtid**, något en rolling update ska undvika.
+
+## Vad jag har gjort
+- **I Kubernetes:** Uppdaterat deploymenten med `kubectl set image`, men utan att specificera en rolling update-strategi.  
+- **I Docker:** Stoppat och raderat den befintliga containern innan jag drog den nya imagen och startade containern igen, vilket skapade nedtid.  
+
+## Vad jag borde ha gjort
+För att implementera en riktig rolling update borde jag ha:
+
+1. **Definierat en RollingUpdate-strategi i deployment.yaml**  
+   ```yaml
+   spec:
+     strategy:
+       type: RollingUpdate
+       rollingUpdate:
+         maxUnavailable: 1
+         maxSurge: 1
+
+Detta säkerställer att bara en pod tas bort åt gången och att en ny startas innan den gamla försvinner.
+
+2. **Lagt till readiness probes**
+
+```sh
+readinessProbe:
+  httpGet:
+    path: /
+    port: 80
+  initialDelaySeconds: 5
+  periodSeconds: 10
+```
+
+Detta gör att Kubernetes väntar med att byta ut poddar tills den nya är redo.
+
+
+3. **Använt kubectl rollout status för att verifiera uppdateringen**
+```sh
+- name: Vänta på att rollout ska bli klar
+  command: kubectl rollout status deployment/nginx-deployment
+```
+
+### *Lärdom*
+
+Denna insikt visar vikten av att låta Kubernetes hantera uppdateringar istället för att manuellt stoppa och starta containrar. Med en korrekt rolling update-strategi kan tjänsten uppdateras utan nedtid och med bättre kontroll över distributionen av nya versioner. Jag får fixa/komplettera detta vid ett senare tillfälle, ville inte börja klydda nu precis innan inlämning, men vill ändå visa att jag har uppmärksammat detta. 
+
 
