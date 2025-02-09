@@ -165,12 +165,12 @@ kubectl rollout restart deployment nginx-deployment
 **Execute the playbook:**
 
 ```sh
-ansible-playbook deploy-playbook.yml --ask-become-pass
+ansible-playbook deploy-playbook.yml
 ```
 - Updates the deployment with the new **GHCR image**
 - Waits for **Kubernetes rollout completion**
 - Validates that **all pods are running**
-- **Rolls back** if deployment fails
+- **Rolls back** if deployment fails 
   
 ![Project Screenshot](image_folder/ansibleplaybook.png)
 
