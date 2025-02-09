@@ -3,7 +3,7 @@
 ![Project Screenshot](image_folder/DevOps_Workflow_Diagram.drawio.png)
 
 ## Introduction
-This project demonstrates a fully automated **CI/CD pipeline** using **Docker, Kubernetes, and Ansible**. The pipeline builds and deploys an **Nginx web server** with a custom `index.html`, ensuring automated versioning and rolling updates.
+This project demonstrates a fully automated **CI/CD pipeline** using **Docker, Kubernetes, and Ansible**. The pipeline builds and deploys an **Nginx web server** with a custom `index.html`, ensuring automated versioning and (rolling updates).
 
 The workflow is managed via **GitHub Actions**, pushing built images to **GitHub Container Registry (GHCR)** and deploying them using Kubernetes. **Ansible** is used to handle rolling updates with rollback capabilities.
 
