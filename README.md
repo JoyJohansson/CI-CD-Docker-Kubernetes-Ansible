@@ -1,4 +1,4 @@
-no# CI/CD with Docker, Kubernetes, and Ansible
+# CI/CD with Docker, Kubernetes, and Ansible
 
 ![Project Screenshot](image_folder/DevOps_Workflow_Diagram.drawio.png)
 
