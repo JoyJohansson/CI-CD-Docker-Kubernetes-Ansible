@@ -82,8 +82,5 @@ jobs:
           password: ${{ secrets.GHCR_PAT }}
 
       - name: Push Docker Image
-        uses: docker/build-push-action@v5
-        with:
-          push: true
-          tags: ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:${{ env.VERSION }}
+        run: docker push ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:${{ env.VERSION }}
 
