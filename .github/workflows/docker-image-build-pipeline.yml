@@ -2,7 +2,6 @@ name: CI/CD for Nginx Build and Deploy
 
 on:
   push:
-    branches: [ main ]
     tags:
       - "v*.*.*"
 
