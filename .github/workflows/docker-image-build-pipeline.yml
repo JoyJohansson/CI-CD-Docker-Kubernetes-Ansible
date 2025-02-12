@@ -56,7 +56,7 @@ jobs:
           fi
 
           # Test 3: Check if index.html contains expected content
-          EXPECTED_CONTENT="Welcome to My Nginx Server"
+          EXPECTED_CONTENT="CI/CD Test - Fruity Edition"
           ACTUAL_CONTENT=$(curl -s http://localhost:8080)
 
           if [[ "$ACTUAL_CONTENT" != *"$EXPECTED_CONTENT"* ]]; then
