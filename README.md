@@ -172,7 +172,7 @@ ansible-playbook deploy-playbook.yml --ask-become-pass
 - Validates that **all pods are running**
 - **Rolls back** if deployment fails
   
-![Project Screenshot](image_folder/ansibleplaybook.png)
+![Project Screenshot](image_folder/Ansible-playbook.png)
 
 ---
 
