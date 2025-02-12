@@ -1,4 +1,4 @@
-name: CI/CD for Nginx Build Only
+name: CI/CD for Nginx Build and Deploy
 
 on:
   push:
@@ -33,13 +33,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker Image
-        run: docker build --no-cache -t ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:$VERSION .
-
-      - name: Test Docker Image
+      - name: Build and Test Docker Image
         run: |
-          docker run -d --rm -p 8080:80 --name test-nginx ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:$VERSION
+          docker buildx build --load --no-cache -t ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:$VERSION .
           
+          docker run -d --rm -p 8080:80 --name test-nginx ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:$VERSION
           sleep 5
           
           if ! docker ps | grep -q test-nginx; then
@@ -54,7 +52,6 @@ jobs:
           fi
           
           echo "Test passed: Nginx is running and serving index.html correctly."
-          
           docker stop test-nginx
 
       - name: Login to GitHub Container Registry (GHCR)
@@ -64,10 +61,9 @@ jobs:
           username: ${{ secrets.GHCR_USERNAME }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Build and Push Docker Image
+      - name: Push Docker Image
         uses: docker/build-push-action@v5
         with:
-          file: ./Dockerfile
           push: true
           tags: ghcr.io/joyjohansson/ci-cd-docker-kubernetes-ansible/my-nginx:${{ env.VERSION }}
 
